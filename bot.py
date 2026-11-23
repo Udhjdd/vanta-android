@@ -2,7 +2,6 @@ import uiautomator2 as u2
 import requests
 import time
 import sys
-import os
 
 BOT_TOKEN = "9032675094:AAGk8zSeWv9ewfztsAATj6_8utGZedynV44"
 CHAT_ID = "7306346652"
@@ -12,7 +11,7 @@ def send_msg(text):
     requests.post(url, json={"chat_id": CHAT_ID, "text": text})
 
 def main():
-    send_msg("🚀 بدء تشغيل الهاتف الوهمي...")
+    send_msg("🚀 بدء تشغيل الهاتف الوهمي (أندرويد 10)...")
     
     try:
         d = u2.connect("127.0.0.1:5555")
@@ -25,9 +24,9 @@ def main():
     send_msg("🛒 جاري فتح متجر بلاي...")
     d.app_start("com.android.vending")
     time.sleep(5)
-    d.screenshot("/tmp/playstore.png")
     
-    # إرسال الصورة
+    # أخذ صورة وإرسالها
+    d.screenshot("/tmp/playstore.png")
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
     with open("/tmp/playstore.png", "rb") as f:
         requests.post(url, data={"chat_id": CHAT_ID}, files={"photo": f})
