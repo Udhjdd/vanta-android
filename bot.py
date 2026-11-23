@@ -36,18 +36,26 @@ def safe_click(d, text, timeout=15):
             time.sleep(2)
     return False
 
-def safe_set_text(d, text, timeout=15):
+def robust_set_text(d, text, timeout=20):
+    """دالة قوية لكتابة النص، تنتظر لوحة المفاتيح وتتأكد من الكتابة"""
     for _ in range(3):
         try:
             field = d(className="android.widget.EditText")
             if field.exists(timeout=timeout):
                 field.click()
-                time.sleep(1)
+                time.sleep(2) # انتظار ظهور لوحة المفاتيح
                 field.clear_text()
-                field.set_text(text)
                 time.sleep(1)
+                field.set_text(text)
+                time.sleep(2)
+                
+                # التحقق من أن النص تم إدخاله (اختياري، قد لا ينجح دائماً بسبب إخفاء الباسورد)
+                # إذا كان النص المرئي فارغاً، نجرب طريقة أخرى
+                if field.get_text() == "":
+                    d.send_keys(text)
+                    time.sleep(1)
                 return True
-        except Exception:
+        except Exception as e:
             time.sleep(2)
     return False
 
@@ -74,7 +82,7 @@ def main():
         return
 
     # 3. إدخال الإيميل
-    if safe_set_text(d, EMAIL, timeout=30):
+    if robust_set_text(d, EMAIL, timeout=30):
         send_msg("📧 تم إدخال الإيميل. جاري الضغط على Next...")
         take_screenshot(d, "2. بعد إدخال الإيميل")
         if not safe_click(d, "Next"):
@@ -86,9 +94,12 @@ def main():
         return
 
     # 4. إدخال كلمة المرور
-    if safe_set_text(d, PASSWORD, timeout=30):
+    send_msg("🔑 جاري الانتظار حتى تظهر خانة كلمة المرور...")
+    if robust_set_text(d, PASSWORD, timeout=30):
         send_msg("🔑 تم إدخال الباسورد. جاري الضغط على Next...")
         take_screenshot(d, "3. بعد إدخال الباسورد")
+        
+        # محاولة الضغط على Next أو Enter
         if not safe_click(d, "Next"):
             try: d.press("enter")
             except: pass
@@ -121,15 +132,11 @@ def main():
         
         # 7. الضغط على "ACCEPT" لشاشة خدمات جوجل (مع التمرير لأسفل)
         send_msg("📜 جاري البحث عن زر (ACCEPT)...")
-        
-        # التمرير لأسفل (Swipe up) للبحث عن الزر
         d.swipe_ext("up", scale=0.5)
         time.sleep(2)
         
         if safe_click(d, "ACCEPT"):
             send_msg("✅ تم الضغط على ACCEPT. جاري إنهاء الإعداد...")
-            
-            # التقاط 3 صور متتالية للتحقق من العودة للمتجر
             time.sleep(3)
             take_screenshot(d, "7. بعد ACCEPT - صورة 1")
             time.sleep(2)
