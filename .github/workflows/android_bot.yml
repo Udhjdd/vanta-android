@@ -54,13 +54,13 @@ jobs:
 
       - name: Update Play Store App
         run: |
-          # تحميل أحدث نسخة من متجر بلاي (نسخة 2024)
-          wget -O /tmp/playstore.apk "https://github.com/Team-Kujang/PlayStore/raw/main/PlayStore.apk"
+          # تحميل أحدث نسخة من متجر بلاي من APKPure
+          curl -L -o /tmp/playstore.apk "https://d.apkpure.com/b/APK/com.android.vending?version=latest"
           
           # تثبيت النسخة الجديدة
           adb install -r /tmp/playstore.apk
           
-          # مسح بيانات المتجر القديمة ليفتح بالواجهة الجديدة
+          # مسح بيانات المتجر القديمة
           adb shell pm clear com.android.vending
 
       - name: Run Bot Script
