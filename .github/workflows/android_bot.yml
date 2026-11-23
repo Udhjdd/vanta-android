@@ -17,17 +17,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Start Android Emulator (Docker-Android with Play Store)
+      - name: Start Android Emulator (Android 10 with Play Store)
         run: |
-          # تشغيل حاوية الأندرويد التي تحتوي على متجر بلاي
+          # تشغيل حاوية الأندرويد
           docker run -d --name android \
             --privileged \
             -p 5555:5555 \
             -e "APPIUM=true" \
             -e "WEBVIEW=true" \
-            budtmo/docker-android:emulator_11.0_google_apis_playstore
+            budtmo/docker-android:emulator_10.0_google_apis_playstore
             
-          echo "Waiting for Android to boot..."
+          echo "Waiting for Android to boot (3 minutes)..."
           sleep 180 # الانتظار 3 دقائق حتى يقلع الأندرويد بالكامل
 
       - name: Run Bot Script
