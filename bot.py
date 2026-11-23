@@ -6,9 +6,8 @@ import sys
 BOT_TOKEN = "9032675094:AAGk8zSeWv9ewfztsAATj6_8utGZedynV44"
 CHAT_ID = "7306346652"
 
-# ضع الإيميل والباسورد هنا
 EMAIL = "ssda73410@gmail.com"
-PASSWORD = "fawazfawaz123@"
+PASSWORD = "fawazfawaz123@" # لا تنسى وضع كلمة المرور
 
 def send_msg(text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -16,10 +15,43 @@ def send_msg(text):
 
 def take_screenshot(d, caption):
     path = f"/tmp/{caption.replace(' ', '_')}.png"
-    d.screenshot(path)
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-    with open(path, "rb") as f:
-        requests.post(url, data={"chat_id": CHAT_ID, "caption": caption}, files={"photo": f})
+    try:
+        d.screenshot(path)
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+        with open(path, "rb") as f:
+            requests.post(url, data={"chat_id": CHAT_ID, "caption": caption}, files={"photo": f})
+    except Exception:
+        pass # تجاهل أخطاء التصوير إذا كانت الشاشة تتغير
+
+def safe_click(d, text, timeout=15):
+    """دالة ذكية للضغط على زر مع إعادة المحاولة إذا تغيرت الشاشة"""
+    for _ in range(3): # حاول 3 مرات
+        try:
+            if d(text=text).exists(timeout=timeout):
+                d(text=text).click()
+                time.sleep(2) # انتظار بعد الضغط
+                return True
+            else:
+                return False
+        except Exception:
+            time.sleep(2) # انتظر واستعد للمحاولة
+    return False
+
+def safe_set_text(d, text, timeout=15):
+    """دالة ذكية لكتابة النص مع إعادة المحاولة"""
+    for _ in range(3):
+        try:
+            field = d(className="android.widget.EditText")
+            if field.exists(timeout=timeout):
+                field.click()
+                time.sleep(1)
+                field.clear_text()
+                field.set_text(text)
+                time.sleep(1)
+                return True
+        except Exception:
+            time.sleep(2)
+    return False
 
 def main():
     send_msg("🚀 بدء تشغيل الهاتف الوهمي...")
@@ -37,51 +69,34 @@ def main():
     time.sleep(10)
 
     # 2. الضغط على SIGN IN
-    if d(text="SIGN IN").exists:
-        d(text="SIGN IN").click()
+    if safe_click(d, "SIGN IN"):
         send_msg("⏳ جاري الانتظار حتى تظهر خانة الإيميل...")
     else:
         send_msg("⚠️ لم يتم العثور على زر SIGN IN.")
         return
 
     # 3. إدخال الإيميل
-    email_field = d(className="android.widget.EditText")
-    if email_field.wait(timeout=30):
-        time.sleep(2)
-        send_msg("📧 جاري كتابة الإيميل...")
-        email_field.click()
-        time.sleep(1)
-        email_field.clear_text()
-        email_field.set_text(EMAIL)
-        time.sleep(2)
+    if safe_set_text(d, EMAIL, timeout=30):
+        send_msg("📧 تم إدخال الإيميل. جاري الضغط على Next...")
         take_screenshot(d, "2. بعد إدخال الإيميل")
-        
-        if d(text="Next").exists: d(text="Next").click()
-        else: d.press("enter")
-            
+        if not safe_click(d, "Next"):
+            try: d.press("enter")
+            except: pass
+        time.sleep(10) # انتظار طويل نسبياً لانتقال الشاشة
     else:
-        send_msg("⚠️ لم تظهر خانة الإيميل بعد 30 ثانية.")
+        send_msg("⚠️ فشل إدخال الإيميل.")
         return
 
     # 4. إدخال كلمة المرور
-    send_msg("🔑 جاري الانتظار حتى تظهر خانة كلمة المرور...")
-    password_field = d(className="android.widget.EditText")
-    if password_field.wait(timeout=30):
-        time.sleep(2)
-        send_msg("🔑 جاري كتابة الباسورد...")
-        password_field.click()
-        time.sleep(1)
-        password_field.clear_text()
-        password_field.set_text(PASSWORD)
-        time.sleep(2)
+    if safe_set_text(d, PASSWORD, timeout=30):
+        send_msg("🔑 تم إدخال الباسورد. جاري الضغط على Next...")
         take_screenshot(d, "3. بعد إدخال الباسورد")
-        
-        if d(text="Next").exists: d(text="Next").click()
-        else: d.press("enter")
-            
+        if not safe_click(d, "Next"):
+            try: d.press("enter")
+            except: pass
         time.sleep(15)
     else:
-        send_msg("⚠️ لم تظهر خانة كلمة المرور.")
+        send_msg("⚠️ فشل إدخال كلمة المرور.")
         return
 
     # 5. التعامل مع 2FA
@@ -97,12 +112,11 @@ def main():
         time.sleep(30)
         take_screenshot(d, "5. بعد تأكيد 2FA")
     else:
-        send_msg("⚠️ لم تظهر شاشة Tap Yes. قد يكون الدخول تم مباشرة.")
+        send_msg("⚠️ لم تظهر شاشة Tap Yes.")
 
     # 6. الضغط على "I agree" والمتابعة بالصور
     send_msg("📜 جاري البحث عن زر (I agree)...")
-    if d(text="I agree").exists:
-        d(text="I agree").click()
+    if safe_click(d, "I agree"):
         send_msg("✅ تم الضغط على I agree. جاري متابعة التحميل...")
         
         # الانتظار والتقاط 3 صور متتالية
