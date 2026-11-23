@@ -44,11 +44,11 @@ def main():
         send_msg("⚠️ لم يتم العثور على زر SIGN IN.")
         return
 
-    # 3. إدخال الإيميل (انتظار ذكي)
+    # 3. إدخال الإيميل
     email_field = d(className="android.widget.EditText")
-    if email_field.wait(timeout=30): # ينتظر حتى 30 ثانية حتى يظهر الحقل
-        time.sleep(2) # انتظار إضافي بسيط لضمان جاهزية لوحة المفاتيح
-        send_msg("📧 تم العثور على خانة الإيميل. جاري الكتابة...")
+    if email_field.wait(timeout=30):
+        time.sleep(2)
+        send_msg("📧 جاري كتابة الإيميل...")
         email_field.click()
         time.sleep(1)
         email_field.clear_text()
@@ -61,15 +61,14 @@ def main():
             
     else:
         send_msg("⚠️ لم تظهر خانة الإيميل بعد 30 ثانية.")
-        take_screenshot(d, "خطأ - لم تظهر خانة الإيميل")
         return
 
-    # 4. إدخال كلمة المرور (انتظار ذكي)
+    # 4. إدخال كلمة المرور
     send_msg("🔑 جاري الانتظار حتى تظهر خانة كلمة المرور...")
     password_field = d(className="android.widget.EditText")
     if password_field.wait(timeout=30):
-        time.sleep(2) # انتظار لضمان جاهزية الشاشة
-        send_msg("🔑 تم العثور على خانة الباسورد. جاري الكتابة...")
+        time.sleep(2)
+        send_msg("🔑 جاري كتابة الباسورد...")
         password_field.click()
         time.sleep(1)
         password_field.clear_text()
@@ -82,8 +81,7 @@ def main():
             
         time.sleep(15)
     else:
-        send_msg("⚠️ لم تظهر خانة كلمة المرور بعد 30 ثانية.")
-        take_screenshot(d, "خطأ - لم تظهر خانة كلمة المرور")
+        send_msg("⚠️ لم تظهر خانة كلمة المرور.")
         return
 
     # 5. التعامل مع 2FA
@@ -99,10 +97,20 @@ def main():
         time.sleep(30)
         take_screenshot(d, "5. بعد تأكيد 2FA")
     else:
-        send_msg("⚠️ لم تظهر شاشة Tap Yes. قد يكون الدخول تم مباشرة أو هناك خطأ.")
+        send_msg("⚠️ لم تظهر شاشة Tap Yes. قد يكون الدخول تم مباشرة.")
 
-    take_screenshot(d, "6. النتيجة النهائية بعد الدخول")
-    send_msg("🎉 انتهت عملية تسجيل الدخول. راجع الصور سيدي.")
+    # 6. الضغط على "I agree" لإنهاء الإعداد
+    send_msg("📜 جاري البحث عن زر (I agree)...")
+    if d(text="I agree").exists:
+        d(text="I agree").click()
+        time.sleep(5)
+        send_msg("✅ تم الضغط على I agree. تم تسجيل الدخول بنجاح!")
+    else:
+        send_msg("⚠️ لم يتم العثور على زر I agree (قد لا يكون مطلوباً).")
+
+    # النتيجة النهائية
+    take_screenshot(d, "6. النتيجة النهائية")
+    send_msg("🎉 انتهت عملية تسجيل الدخول بالكامل سيدي.")
     
 if __name__ == "__main__":
     main()
