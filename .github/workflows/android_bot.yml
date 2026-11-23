@@ -25,16 +25,16 @@ jobs:
 
       - name: Install Android SDK & Emulator
         run: |
-          sudo apt-get update
-          sudo apt-get install -y android-sdk
-          export ANDROID_HOME=/usr/lib/android-sdk
+          # إنشاء مجلد محلي للـ SDK لتجنب مشاكل الصلاحيات
+          export ANDROID_HOME=$HOME/android-sdk
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator
           
-          # تحميل أدوات SDK الرسمية
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+          
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q commandlinetools-linux-9477386_latest.zip
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          mv cmdline-tools latest
           
           # قبول التراخيص
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
