@@ -1,6 +1,6 @@
-name: Android Bot
+name: Android Bot Raw Emulator
 on:
-  workflow_dispatch: # يسمح لك بتشغيله يدوياً من GitHub
+  workflow_dispatch: # يسمح لك بتشغيله يدوياً
 
 jobs:
   run-android:
@@ -17,18 +17,40 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Start Android Emulator
+      - name: Enable KVM (Hardware Acceleration)
         run: |
-          # تشغيل حاوية الأندرويد (أندرويد 10 مع متجر بلاي)
-          docker run -d --name android \
-            --privileged \
-            -p 5555:5555 \
-            -e "APPIUM=true" \
-            -e "WEBVIEW=true" \
-            budtmo/docker-android:emulator_10.0_google_apis_playstore
-            
-          echo "Waiting for Android to boot (3 minutes)..."
-          sleep 180
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Android SDK & Emulator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y android-sdk
+          export ANDROID_HOME=/usr/lib/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator
+          
+          # تحميل أدوات SDK الرسمية
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip -q commandlinetools-linux-9477386_latest.zip
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          
+          # قبول التراخيص
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          
+          # تحميل صورة أندرويد 11 مع متجر بلاي
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-30" "system-images;android-30;google_apis_playstore;x86_64"
+          
+          # إنشاء جهاز افتراضي (AVD)
+          echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n test -k "system-images;android-30;google_apis_playstore;x86_64" -d pixel_3a
+          
+          # تشغيل المحاكي بدون واجهة
+          $ANDROID_HOME/emulator/emulator -avd test -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect &
+          
+          # الانتظار حتى يقلع الأندرويد
+          adb wait-for-device
+          while [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; do sleep 2; done
 
       - name: Run Bot Script
         run: python bot.py
