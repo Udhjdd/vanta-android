@@ -6,9 +6,9 @@ import sys
 BOT_TOKEN = "9032675094:AAGk8zSeWv9ewfztsAATj6_8utGZedynV44"
 CHAT_ID = "7306346652"
 
-# ضع الإيميل والباسورد هنا
-EMAIL = "YOUR_EMAIL_HERE"
-PASSWORD = "YOUR_PASSWORD_HERE"
+# ضع الإيميل والباسورد هنا (تأكد من تغييرهما)
+EMAIL = "ssda73410@gmail.com"
+PASSWORD = "fawazfawaz123@"
 
 def send_msg(text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -40,7 +40,8 @@ def main():
     # 2. الضغط على SIGN IN
     if d(text="SIGN IN").exists:
         d(text="SIGN IN").click()
-        time.sleep(10)
+        send_msg("⏳ في انتظار ظهور خانة الإيميل (15 ثانية)...")
+        time.sleep(15) # زيادة وقت الانتظار
         take_screenshot(d, "2. شاشة تسجيل الدخول")
     else:
         send_msg("⚠️ لم يتم العثور على زر SIGN IN.")
@@ -48,8 +49,13 @@ def main():
 
     # 3. إدخال الإيميل
     send_msg("📧 جاري إدخال الإيميل...")
-    if d(className="android.widget.EditText").exists(timeout=30):
-        d(className="android.widget.EditText").set_text(EMAIL)
+    # البحث عن خانة الإدخال
+    email_field = d(className="android.widget.EditText")
+    if email_field.exists(timeout=10):
+        email_field.click() # التأكد من تفعيل الخانة
+        time.sleep(1)
+        email_field.clear_text() # مسح أي نص سابق
+        email_field.set_text(EMAIL)
         time.sleep(2)
         take_screenshot(d, "3. بعد إدخال الإيميل")
         
@@ -59,12 +65,17 @@ def main():
         time.sleep(10)
     else:
         send_msg("⚠️ لم تظهر خانة الإيميل.")
+        take_screenshot(d, "خطأ - لم تظهر خانة الإيميل")
         return
 
     # 4. إدخال كلمة المرور
     send_msg("🔑 جاري إدخال كلمة المرور...")
-    if d(className="android.widget.EditText").exists(timeout=10):
-        d(className="android.widget.EditText").set_text(PASSWORD)
+    password_field = d(className="android.widget.EditText")
+    if password_field.exists(timeout=10):
+        password_field.click()
+        time.sleep(1)
+        password_field.clear_text()
+        password_field.set_text(PASSWORD)
         time.sleep(2)
         take_screenshot(d, "4. بعد إدخال الباسورد")
         
@@ -74,6 +85,7 @@ def main():
         time.sleep(15)
     else:
         send_msg("⚠️ لم تظهر خانة كلمة المرور.")
+        take_screenshot(d, "خطأ - لم تظهر خانة كلمة المرور")
         return
 
     # 5. التعامل مع 2FA
@@ -87,14 +99,10 @@ def main():
         take_screenshot(d, "5. شاشة التحقق (2FA)")
         send_msg("⚠️ **افتح هاتفك الآن واضغط على إشعار جوجل لتأكيد الدخول.** (لديك 30 ثانية)...")
         time.sleep(30)
-        
-        # صورة بعد التأكيد
         take_screenshot(d, "6. بعد تأكيد 2FA")
-        
     else:
         send_msg("⚠️ لم تظهر شاشة Tap Yes. قد يكون الدخول تم مباشرة أو هناك خطأ.")
 
-    # التقاط صورة نهائية
     take_screenshot(d, "7. النتيجة النهائية بعد الدخول")
     send_msg("🎉 انتهت عملية تسجيل الدخول. راجع الصور سيدي.")
     
