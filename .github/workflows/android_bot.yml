@@ -40,21 +40,28 @@ jobs:
           
           echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd -n test -k "system-images;android-30;google_apis_playstore;x86_64" -d pixel_3a
           
-          # توليد مفاتيح ADB قبل التشغيل
           mkdir -p ~/.android
           adb keygen ~/.android/adbkey
           
-          # تشغيل المحاكي
           $ANDROID_HOME/emulator/emulator -avd test -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect &
           
-          # الانتظار حتى يقلع الأندرويد
           adb wait-for-device
           while [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; do sleep 2; done
           
-          # إعادة تشغيل ADB ليتعرف على المفاتيح الجديدة
           adb kill-server
           adb start-server
           adb devices
+
+      - name: Update Play Store App
+        run: |
+          # تحميل أحدث نسخة من متجر بلاي (نسخة 2024)
+          wget -O /tmp/playstore.apk "https://github.com/Team-Kujang/PlayStore/raw/main/PlayStore.apk"
+          
+          # تثبيت النسخة الجديدة
+          adb install -r /tmp/playstore.apk
+          
+          # مسح بيانات المتجر القديمة ليفتح بالواجهة الجديدة
+          adb shell pm clear com.android.vending
 
       - name: Run Bot Script
         run: python bot.py
