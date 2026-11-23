@@ -19,13 +19,13 @@ jobs:
 
       - name: Start Android Emulator
         run: |
-          # تشغيل حاوية الأندرويد (النسخة التي نجحت)
+          # تشغيل حاوية الأندرويد (أندرويد 10 مع متجر بلاي)
           docker run -d --name android \
             --privileged \
             -p 5555:5555 \
             -e "APPIUM=true" \
             -e "WEBVIEW=true" \
-            budtmo/docker-android:emulator_11.0
+            budtmo/docker-android:emulator_10.0_google_apis_playstore
             
           echo "Waiting for Android to boot (3 minutes)..."
           sleep 180
