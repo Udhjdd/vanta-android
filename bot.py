@@ -11,7 +11,7 @@ def send_msg(text):
     requests.post(url, json={"chat_id": CHAT_ID, "text": text})
 
 def main():
-    send_msg("🚀 بدء تشغيل الهاتف الوهمي (أندرويد 10)...")
+    send_msg("🚀 بدء تشغيل محاكي Google الرسمي (بدون Docker)...")
     
     try:
         d = u2.connect("127.0.0.1:5555")
@@ -22,13 +22,8 @@ def main():
 
     # فتح متجر بلاي
     send_msg("🛒 جاري فتح متجر بلاي...")
-    try:
-        d.app_start("com.android.vending")
-        time.sleep(10)
-    except:
-        send_msg("⚠️ لم يتم العثور على متجر بلاي، سأفتح المتصفح.")
-        d.app_start("com.android.chrome")
-        time.sleep(5)
+    d.app_start("com.android.vending")
+    time.sleep(10)
 
     # أخذ صورة وإرسالها
     d.screenshot("/tmp/result.png")
@@ -36,7 +31,7 @@ def main():
     with open("/tmp/result.png", "rb") as f:
         requests.post(url, data={"chat_id": CHAT_ID}, files={"photo": f})
 
-    send_msg("🎉 انتهت التجربة.")
+    send_msg("🎉 انتهت التجربة. متجر بلاي الرسمي يجب أن يكون مفتوحاً الآن.")
     
 if __name__ == "__main__":
     main()
