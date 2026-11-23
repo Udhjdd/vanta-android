@@ -19,16 +19,16 @@ jobs:
 
       - name: Start Android Emulator
         run: |
-          # تشغيل حاوية الأندرويد (النسخة التي تحتوي على خدمات جوجل)
+          # تشغيل حاوية الأندرويد (النسخة التي نجحت)
           docker run -d --name android \
             --privileged \
             -p 5555:5555 \
             -e "APPIUM=true" \
             -e "WEBVIEW=true" \
-            budtmo/docker-android:emulator_11.0_google_apis
+            budtmo/docker-android:emulator_11.0
             
           echo "Waiting for Android to boot (3 minutes)..."
-          sleep 180 # الانتظار 3 دقائق حتى يقلع الأندرويد
+          sleep 180
 
       - name: Run Bot Script
         run: python bot.py
