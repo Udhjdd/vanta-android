@@ -119,8 +119,13 @@ def main():
         time.sleep(5)
         take_screenshot(d, "6. بعد I agree")
         
-        # 7. الضغط على "ACCEPT" لشاشة خدمات جوجل
+        # 7. الضغط على "ACCEPT" لشاشة خدمات جوجل (مع التمرير لأسفل)
         send_msg("📜 جاري البحث عن زر (ACCEPT)...")
+        
+        # التمرير لأسفل (Swipe up) للبحث عن الزر
+        d.swipe_ext("up", scale=0.5)
+        time.sleep(2)
+        
         if safe_click(d, "ACCEPT"):
             send_msg("✅ تم الضغط على ACCEPT. جاري إنهاء الإعداد...")
             
@@ -132,7 +137,7 @@ def main():
             time.sleep(2)
             take_screenshot(d, "9. بعد ACCEPT - صورة 3 (النهائية)")
         else:
-            send_msg("⚠️ لم يتم العثور على زر ACCEPT.")
+            send_msg("⚠️ لم يتم العثور على زر ACCEPT حتى بعد التمرير.")
             take_screenshot(d, "النتيجة النهائية")
     else:
         send_msg("⚠️ لم يتم العثور على زر I agree.")
