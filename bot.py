@@ -99,17 +99,26 @@ def main():
     else:
         send_msg("⚠️ لم تظهر شاشة Tap Yes. قد يكون الدخول تم مباشرة.")
 
-    # 6. الضغط على "I agree" لإنهاء الإعداد
+    # 6. الضغط على "I agree" والمتابعة بالصور
     send_msg("📜 جاري البحث عن زر (I agree)...")
     if d(text="I agree").exists:
         d(text="I agree").click()
-        time.sleep(5)
-        send_msg("✅ تم الضغط على I agree. تم تسجيل الدخول بنجاح!")
+        send_msg("✅ تم الضغط على I agree. جاري متابعة التحميل...")
+        
+        # الانتظار والتقاط 3 صور متتالية
+        time.sleep(2)
+        take_screenshot(d, "6. بعد I agree - صورة 1")
+        
+        time.sleep(2)
+        take_screenshot(d, "7. بعد I agree - صورة 2")
+        
+        time.sleep(2)
+        take_screenshot(d, "8. بعد I agree - صورة 3 (النهائية)")
+        
     else:
         send_msg("⚠️ لم يتم العثور على زر I agree (قد لا يكون مطلوباً).")
+        take_screenshot(d, "النتيجة النهائية")
 
-    # النتيجة النهائية
-    take_screenshot(d, "6. النتيجة النهائية")
     send_msg("🎉 انتهت عملية تسجيل الدخول بالكامل سيدي.")
     
 if __name__ == "__main__":
