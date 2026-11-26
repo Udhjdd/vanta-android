@@ -29,6 +29,39 @@ def take_screenshot(d, caption):
     except Exception:
         pass
 
+def login_to_google(d):
+    """دالة مساعدة لتسجيل الدخول (تستخدم في الصفحة الأولى أو صفحة الصلاحيات)"""
+    time.sleep(3)
+    if d(text="Sign in").exists or d(className="android.widget.EditText").exists:
+        send_msg("🔑 جاري تسجيل الدخول...")
+        email_field = d(className="android.widget.EditText")
+        if email_field.exists:
+            email_field.click()
+            time.sleep(1)
+            email_field.set_text(EMAIL)
+            time.sleep(1)
+            if d(text="Next").exists: d(text="Next").click()
+            else: d.press("enter")
+            time.sleep(5)
+
+        password_field = d(className="android.widget.EditText")
+        if password_field.exists:
+            password_field.click()
+            time.sleep(1)
+            password_field.set_text(PASSWORD)
+            time.sleep(1)
+            if d(text="Next").exists: d(text="Next").click()
+            else: d.press("enter")
+            time.sleep(8)
+
+        # التحقق بخطوتين (إذا ظهرت)
+        if d(text="Tap Yes").exists or d(text="Tap Yes on your phone or tablet").exists:
+            send_msg("📲 وصلت لشاشة التحقق. جاري الضغط على Tap Yes...")
+            if d(text="Tap Yes").exists: d(text="Tap Yes").click()
+            else: d(text="Tap Yes on your phone or tablet").click()
+            send_msg("⚠️ **افتح هاتفك الآن واضغط على إشعار جوجل.** (لديك 45 ثانية)...")
+            time.sleep(45)
+
 def main():
     send_msg("🚀 بدء تشغيل الهاتف الوهمي لاستخراج التوكن...")
     
@@ -38,6 +71,7 @@ def main():
         send_msg(f"❌ فشل الاتصال بالهاتف: {str(e)}")
         sys.exit(1)
 
+    # 1. فتح المتصفح
     d.app_start("com.android.chrome")
     time.sleep(5)
     if d(text="Accept & continue").exists:
@@ -47,40 +81,7 @@ def main():
         d(text="No thanks").click()
         time.sleep(3)
 
-    d.open_url("https://accounts.google.com/signin")
-    time.sleep(8)
-    
-    # إدخال الإيميل
-    email_field = d(className="android.widget.EditText")
-    if email_field.wait(timeout=20):
-        email_field.click()
-        time.sleep(1)
-        email_field.set_text(EMAIL)
-        time.sleep(1)
-        if d(text="Next").exists: d(text="Next").click()
-        else: d.press("enter")
-        time.sleep(8)
-
-    # إدخال الباسورد
-    password_field = d(className="android.widget.EditText")
-    if password_field.wait(timeout=20):
-        password_field.click()
-        time.sleep(1)
-        password_field.set_text(PASSWORD)
-        time.sleep(1)
-        if d(text="Next").exists: d(text="Next").click()
-        else: d.press("enter")
-        time.sleep(10)
-
-    # 2FA (إذا ظهرت)
-    if d(text="Tap Yes").exists or d(text="Tap Yes on your phone or tablet").exists:
-        send_msg("📲 وصلت لشاشة التحقق. جاري الضغط على Tap Yes...")
-        if d(text="Tap Yes").exists: d(text="Tap Yes").click()
-        else: d(text="Tap Yes on your phone or tablet").click()
-        send_msg("⚠️ **افتح هاتفك الآن واضغط على إشعار جوجل.** (لديك 45 ثانية)...")
-        time.sleep(45)
-
-    # طلب الصلاحيات
+    # 2. فتح رابط الصلاحيات مباشرة
     send_msg("🔗 جاري فتح رابط الصلاحيات...")
     auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode({
         "client_id": CLIENT_ID,
@@ -93,17 +94,19 @@ def main():
     
     d.open_url(auth_url)
     time.sleep(8)
-    take_screenshot(d, "1. صفحة اختيار الحساب")
+    take_screenshot(d, "1. صفحة الصلاحيات")
 
-    # ** الإصلاح 1: الضغط على الحساب الظاهر **
+    # 3. تسجيل الدخول إذا طلب (لأن الجلسة لم تنتقل)
+    login_to_google(d)
+    take_screenshot(d, "2. بعد تسجيل الدخول")
+
+    # 4. اختيار الحساب إذا ظهر
     if d(textContains="@gmail.com").exists:
-        send_msg("👤 جاري الضغط على الحساب...")
+        send_msg("👤 جاري اختيار الحساب...")
         d(textContains="@gmail.com").click()
         time.sleep(5)
 
-    take_screenshot(d, "2. بعد اختيار الحساب")
-
-    # ** الإصلاح 2: الضغط على Continue أو Allow **
+    # 5. الضغط على Continue أو Allow
     if d(text="Continue").exists:
         send_msg("✅ جاري الضغط على Continue...")
         d(text="Continue").click()
@@ -112,22 +115,25 @@ def main():
         send_msg("✅ جاري الضغط على Allow...")
         d(text="Allow").click()
         time.sleep(5)
-
+    
     take_screenshot(d, "3. بعد الموافقة")
 
-    # ** الإصلاح 3: استخراج الكود من شريط العنوان **
-    send_msg("🔍 جاري استخراج الكود من الرابط...")
+    # 6. استخراج الكود من شريط العنوان
+    send_msg("🔍 جاري استخراج الكود...")
     current_url = ""
-    for _ in range(15): # نحاول لمدة 30 ثانية
+    
+    # محاولة قراءة الرابط
+    for _ in range(15):
         try:
-            # نقرأ الرابط من شريط العنوان في كروم
-            url_bar = d(className="android.widget.EditText", packageName="com.android.chrome")
-            if url_bar.exists:
-                url_bar.click()
-                time.sleep(1)
-                current_url = url_bar.get_text()
-                if "code=" in current_url:
-                    break
+            # فتح شريط العنوان
+            d(className="android.widget.EditText", packageName="com.android.chrome").click()
+            time.sleep(1)
+            current_url = d(className="android.widget.EditText", packageName="com.android.chrome").get_text()
+            if "code=" in current_url:
+                break
+            # إغلاق الكيبورد
+            d.press("back")
+            time.sleep(1)
         except:
             pass
         time.sleep(2)
