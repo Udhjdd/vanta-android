@@ -7,7 +7,6 @@ import http.server
 import socketserver
 import threading
 import os
-import json
 
 BOT_TOKEN = "9032675094:AAGk8zSeWv9ewfztsAATj6_8utGZedynV44"
 CHAT_ID = "7306346652"
@@ -36,7 +35,6 @@ def take_screenshot(d, caption):
         pass
 
 def get_credentials_from_telegram():
-    """جلب الإيميل والباسورد من تيليجرام قبل بدء العملية"""
     global EMAIL, PASSWORD
     send_msg("🤖 مرحباً سيدي. يرجى إرسال الإيميل في سطر، وكلمة المرور في السطر الذي يليه.")
     
@@ -86,8 +84,7 @@ def start_server():
     with socketserver.TCPServer(("", 8080), OAuthHandler) as httpd:
         httpd.serve_forever()
 
-def safe_input(d, text_to_type, chat_id, step_name):
-    """دالة آمنة للكتابة تتجنب انهيار الشاشة وتلتقط الصور"""
+def safe_input(d, text_to_type, step_name):
     for attempt in range(3):
         try:
             field = d(className="android.widget.EditText")
@@ -98,9 +95,36 @@ def safe_input(d, text_to_type, chat_id, step_name):
                 time.sleep(1)
                 take_screenshot(d, step_name)
                 return True
-        except Exception as e:
-            print(f"Retry {attempt+1}: {e}")
+        except Exception:
             time.sleep(2)
+    return False
+
+def click_continue_and_wait(d):
+    """محاولة الضغط على Continue بطرق متعددة وانتظار التحول للرابط"""
+    send_msg("✅ جاري الضغط على Continue والانتظار...")
+    
+    for _ in range(5): # نحاول 5 مرات
+        # البحث عن الزر كنص أو كزر
+        btn = d(text="Continue")
+        if not btn.exists:
+            btn = d(text="Allow")
+        
+        if btn.exists:
+            try:
+                btn.click()
+                time.sleep(4)
+                take_screenshot(d, "بعد محاولة الضغط")
+                
+                # التحقق مما إذا كنا انتقلنا إلى localhost (أو صفحة خطأ)
+                if "localhost" in d.app_current()["package"] or "ERR_CONNECTION" in d.dump_hierarchy():
+                    break # نجحنا في الوصول
+            except:
+                pass
+        else:
+            # إذا لم نجد الزر، نمرر الشاشة لأسفل ونحاول
+            d.swipe_ext("up", scale=0.5)
+            time.sleep(2)
+            
     return False
 
 def login_to_google(d):
@@ -109,7 +133,7 @@ def login_to_google(d):
     
     if d(text="Sign in").exists or d(className="android.widget.EditText").exists:
         send_msg("🔑 جاري إدخال الإيميل...")
-        if safe_input(d, EMAIL, CHAT_ID, "بعد إدخال الإيميل"):
+        if safe_input(d, EMAIL, "بعد إدخال الإيميل"):
             if d(text="Next").exists: d(text="Next").click()
             else: d.press("enter")
             time.sleep(5)
@@ -119,7 +143,7 @@ def login_to_google(d):
             return
 
         send_msg("🔑 جاري إدخال كلمة المرور...")
-        if safe_input(d, PASSWORD, CHAT_ID, "بعد إدخال الباسورد"):
+        if safe_input(d, PASSWORD, "بعد إدخال الباسورد"):
             if d(text="Next").exists: d(text="Next").click()
             else: d.press("enter")
             time.sleep(8)
@@ -128,7 +152,6 @@ def login_to_google(d):
             send_msg("⚠️ فشل إدخال كلمة المرور.")
             return
 
-        # التعامل مع 2FA
         take_screenshot(d, "التحقق من 2FA")
         if d(text="Tap Yes").exists or d(text="Tap Yes on your phone or tablet").exists:
             send_msg("📲 وصلت لشاشة التحقق. جاري الضغط على Tap Yes...")
@@ -141,7 +164,6 @@ def login_to_google(d):
 
 def main():
     global auth_code
-    # 1. جلب البيانات من تيليجرام
     get_credentials_from_telegram()
     
     send_msg("🚀 بدء تشغيل الهاتف الوهمي...")
@@ -195,18 +217,9 @@ def main():
 
     # الموافقة
     take_screenshot(d, "التحقق من شاشة الموافقة")
-    if d(text="Continue").exists:
-        send_msg("✅ جاري الضغط على Continue...")
-        d(text="Continue").click()
-        time.sleep(5)
-        take_screenshot(d, "بعد الضغط على Continue")
-    elif d(text="Allow").exists:
-        send_msg("✅ جاري الضغط على Allow...")
-        d(text="Allow").click()
-        time.sleep(5)
-        take_screenshot(d, "بعد الضغط على Allow")
+    click_continue_and_wait(d)
     
-    take_screenshot(d, "النتيجة النهائية (قبل التقاط الكود)")
+    take_screenshot(d, "النتيجة النهائية (بعد محاولة الموافقة)")
 
     send_msg("⏳ في انتظار التقاط الكود تلقائياً...")
     for _ in range(15):
@@ -234,7 +247,17 @@ def main():
             send_msg(f"⚠️ لم أجد refresh_token. الرد: {token_data}")
     else:
         send_msg("❌ فشل التقاط الكود (انتهت المهلة).")
-        take_screenshot(d, "error_no_code")
+        # محاولة أخيرة لاستخراج الكود من شريط العنوان كخطة بديلة
+        try:
+            d(className="android.widget.EditText", packageName="com.android.chrome").click()
+            time.sleep(1)
+            current_url = d(className="android.widget.EditText", packageName="com.android.chrome").get_text()
+            if "code=" in current_url:
+                code = current_url.split("code=")[1].split("&")[0]
+                send_msg(f"🎉 تم التقاط الكود من الرابط يدوياً!\nجاري تحويله...")
+                # كود التحويل هنا...
+        except:
+            take_screenshot(d, "error_no_code")
 
 if __name__ == "__main__":
     main()
