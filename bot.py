@@ -3,6 +3,10 @@ import requests
 import time
 import sys
 import urllib.parse
+import http.server
+import socketserver
+import threading
+import os
 
 BOT_TOKEN = "9032675094:AAGk8zSeWv9ewfztsAATj6_8utGZedynV44"
 CHAT_ID = "7306346652"
@@ -14,6 +18,8 @@ SCOPE = "https://www.googleapis.com/auth/games"
 
 EMAIL = "nvhjgvjj49@gmail.com"
 PASSWORD = "fawazfawaz1234@#" # ضع كلمة المرور هنا
+
+auth_code = None
 
 def send_msg(text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -29,8 +35,28 @@ def take_screenshot(d, caption):
     except Exception:
         pass
 
+class OAuthHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        global auth_code
+        query = urllib.parse.urlparse(self.path).query
+        params = urllib.parse.parse_qs(query)
+        if 'code' in params:
+            auth_code = params['code'][0]
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b"<h1>Success!</h1><p>Token captured. You can close this.</p>")
+        else:
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b"<h1>Waiting...</h1>")
+
+def start_server():
+    with socketserver.TCPServer(("", 8080), OAuthHandler) as httpd:
+        httpd.serve_forever()
+
 def login_to_google(d):
-    """دالة مساعدة لتسجيل الدخول (تستخدم في الصفحة الأولى أو صفحة الصلاحيات)"""
     time.sleep(3)
     if d(text="Sign in").exists or d(className="android.widget.EditText").exists:
         send_msg("🔑 جاري تسجيل الدخول...")
@@ -54,7 +80,6 @@ def login_to_google(d):
             else: d.press("enter")
             time.sleep(8)
 
-        # التحقق بخطوتين (إذا ظهرت)
         if d(text="Tap Yes").exists or d(text="Tap Yes on your phone or tablet").exists:
             send_msg("📲 وصلت لشاشة التحقق. جاري الضغط على Tap Yes...")
             if d(text="Tap Yes").exists: d(text="Tap Yes").click()
@@ -63,15 +88,25 @@ def login_to_google(d):
             time.sleep(45)
 
 def main():
+    global auth_code
     send_msg("🚀 بدء تشغيل الهاتف الوهمي لاستخراج التوكن...")
     
+    # 1. تشغيل السيرفر المحلي على المنفذ 8080
+    server_thread = threading.Thread(target=start_server)
+    server_thread.daemon = True
+    server_thread.start()
+
+    # 2. ربط منفذ الهاتف بمنفذ السيرفر
+    os.system("adb reverse tcp:8080 tcp:8080")
+    send_msg("🔗 تم ربط السيرفر المحلي بالهاتف الوهمي.")
+
     try:
         d = u2.connect("127.0.0.1:5555")
     except Exception as e:
         send_msg(f"❌ فشل الاتصال بالهاتف: {str(e)}")
         sys.exit(1)
 
-    # 1. فتح المتصفح
+    # 3. فتح المتصفح
     d.app_start("com.android.chrome")
     time.sleep(5)
     if d(text="Accept & continue").exists:
@@ -81,8 +116,8 @@ def main():
         d(text="No thanks").click()
         time.sleep(3)
 
-    # 2. فتح رابط الصلاحيات مباشرة
-    send_msg("🔗 جاري فتح رابط الصلاحيات...")
+    # 4. فتح رابط الصلاحيات
+    send_msg("🌐 جاري فتح رابط الصلاحيات...")
     auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode({
         "client_id": CLIENT_ID,
         "redirect_uri": REDIRECT_URI,
@@ -94,19 +129,17 @@ def main():
     
     d.open_url(auth_url)
     time.sleep(8)
-    take_screenshot(d, "1. صفحة الصلاحيات")
 
-    # 3. تسجيل الدخول إذا طلب (لأن الجلسة لم تنتقل)
+    # 5. تسجيل الدخول (إذا لزم)
     login_to_google(d)
-    take_screenshot(d, "2. بعد تسجيل الدخول")
 
-    # 4. اختيار الحساب إذا ظهر
+    # 6. اختيار الحساب
     if d(textContains="@gmail.com").exists:
         send_msg("👤 جاري اختيار الحساب...")
         d(textContains="@gmail.com").click()
         time.sleep(5)
 
-    # 5. الضغط على Continue أو Allow
+    # 7. الموافقة على الصلاحيات
     if d(text="Continue").exists:
         send_msg("✅ جاري الضغط على Continue...")
         d(text="Continue").click()
@@ -116,37 +149,24 @@ def main():
         d(text="Allow").click()
         time.sleep(5)
     
-    take_screenshot(d, "3. بعد الموافقة")
+    take_screenshot(d, "بعد الموافقة")
 
-    # 6. استخراج الكود من شريط العنوان
-    send_msg("🔍 جاري استخراج الكود...")
-    current_url = ""
-    
-    # محاولة قراءة الرابط
-    for _ in range(15):
-        try:
-            # فتح شريط العنوان
-            d(className="android.widget.EditText", packageName="com.android.chrome").click()
-            time.sleep(1)
-            current_url = d(className="android.widget.EditText", packageName="com.android.chrome").get_text()
-            if "code=" in current_url:
-                break
-            # إغلاق الكيبورد
-            d.press("back")
-            time.sleep(1)
-        except:
-            pass
-        time.sleep(2)
+    # 8. انتظار التقاط الكود بواسطة السيرفر
+    send_msg("⏳ في انتظار التقاط الكود تلقائياً من السيرفر...")
+    for _ in range(15): # انتظار 15 ثانية
+        if auth_code:
+            break
+        time.sleep(1)
 
-    if "code=" in current_url:
-        code = current_url.split("code=")[1].split("&")[0]
-        send_msg(f"🎉 تم التقاط الكود!\nجاري تحويله إلى Refresh Token...")
+    # 9. تحويل الكود إلى Refresh Token
+    if auth_code:
+        send_msg(f"🎉 تم التقاط الكود بنجاح!\nجاري تحويله...")
         
         token_url = "https://oauth2.googleapis.com/token"
         res = requests.post(token_url, data={
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
-            "code": code,
+            "code": auth_code,
             "redirect_uri": REDIRECT_URI,
             "grant_type": "authorization_code"
         })
@@ -158,7 +178,7 @@ def main():
         else:
             send_msg(f"⚠️ لم أجد refresh_token. الرد: {token_data}")
     else:
-        send_msg(f"❌ فشل التقاط الكود. الرابط الحالي: {current_url}")
+        send_msg("❌ فشل التقاط الكود (انتهت المهلة).")
         take_screenshot(d, "error_no_code")
 
 if __name__ == "__main__":
