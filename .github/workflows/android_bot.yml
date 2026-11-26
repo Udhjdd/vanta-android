@@ -1,4 +1,4 @@
-name: Android Bot Raw Emulator
+name: Android Raw Emulator
 on:
   workflow_dispatch: # يسمح لك بتشغيله يدوياً
 
@@ -51,17 +51,6 @@ jobs:
           adb kill-server
           adb start-server
           adb devices
-
-      - name: Update Play Store App
-        run: |
-          # تحميل أحدث نسخة من متجر بلاي من APKPure
-          curl -L -o /tmp/playstore.apk "https://d.apkpure.com/b/APK/com.android.vending?version=latest"
-          
-          # تثبيت النسخة الجديدة
-          adb install -r /tmp/playstore.apk
-          
-          # مسح بيانات المتجر القديمة
-          adb shell pm clear com.android.vending
 
       - name: Run Bot Script
         run: python bot.py
